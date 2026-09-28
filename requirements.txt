@@ -1,0 +1,12 @@
+pandas>=2.2,<3
+numpy>=1.26,<3
+scikit-learn>=1.5,<2
+statsmodels>=0.14,<0.15
+matplotlib>=3.9,<4
+seaborn>=0.13,<1
+openpyxl>=3.1,<4
+ucimlrepo>=0.0.7,<1
+requests>=2.32,<3
+ollama>=0.6,<1
+streamlit>=1.40,<2
+joblib>=1.4,<2
