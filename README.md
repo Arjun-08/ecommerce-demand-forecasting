@@ -131,18 +131,10 @@ A forecasting model should never learn from the future when predicting the past.
 
 The project therefore uses chronological validation:
 
-```text
-
-Historical observations
-
-|-----------------------------|---------|
-
-
-          Training              Validation
-
-                               30 days
-
-```
+| Historical Observations | Final 30 Days |
+|:-----------------------:|:-------------:|
+| **Training Period**     | **Validation Period** |
+| Used for model training | Held out as unseen data |
 
 The final 30 days are held out as an unseen validation period.
 
@@ -179,7 +171,7 @@ The second approach models the statistical structure of the time series.
 SARIMA can be represented as:
 
 $$
-\operatorname{SARIMA}(p,d,q)\times(P,D,Q)_s
+\{SARIMA}(p,d,q)\times(P,D,Q)_s
 $$
 
 where:
@@ -201,7 +193,7 @@ $$
 The project uses:
 
 $$
-\operatorname{SARIMA}(1,1,1)\times(1,1,1)_7
+\{SARIMA}(1,1,1)\times(1,1,1)_7
 $$
 
 The implementation uses `statsmodels`' SARIMAX interface.
@@ -454,149 +446,8 @@ The raw dataset and generated model artifacts are excluded from Git.
 
 ---
 
-# Project structure
-```text
 
-ecommerce-demand-forecasting/
-
-│
-
-├── app.py
-
-├── main.py
-
-├── download_data.py
-
-├── commands.txt
-
-├── requirements.txt
-
-├── README.md
-
-├── .gitignore
-
-│
-
-├── data/
-
-│   ├── raw/
-
-│   └── processed/
-
-│
-
-├── models/
-
-│
-
-├── outputs/
-
-│
-
-└── src/
-
-    ├── __init__.py
-
-    ├── data.py
-
-    ├── features.py
-
-    ├── models.py
-
-    ├── evaluate.py
-
-    ├── plots.py
-
-    └── llm.py
-
-```
-
-Each component has one clear responsibility:
-
-| Component | Responsibility |
-|---|---|
-| `download_data.py` | Retrieve the UCI dataset |
-| `src/data.py` | Cleaning and time-series construction |
-| `src/features.py` | Lag and rolling features |
-| `src/models.py` | Forecasting models |
-| `src/evaluate.py` | Evaluation metrics |
-| `src/plots.py` | Visual diagnostics |
-| `src/llm.py` | Local LLM explanation |
-| `main.py` | End-to-end pipeline |
-| `app.py` | Streamlit interface |
-
-
----
-
-# Running the project
-
-Create an environment:
-
-```bash
-
-python -m venv .venv
-
-```
-
-Activate it on Windows:
-
-```powershell
-
-.venv\Scripts\Activate.ps1
-
-```
-
-Install dependencies:
-
-```bash
-
-pip install -r requirements.txt
-
-```
-
-Download the dataset:
-
-```bash
-
-python download_data.py
-
-```
-
-Run the forecasting pipeline:
-
-```bash
-
-python main.py
-
-```
-
-Optional local LLM:
-
-```bash
-
-ollama pull qwen3:4b
-
-```
-
-Then run:
-
-```bash
-
-python main.py
-
-```
-
-Optional dashboard:
-
-```bash
-
-streamlit run app.py
-
-```
-
----
-
-**# Results
+# Results
 
 The first end-to-end experiment was completed successfully using the selected product:
 
