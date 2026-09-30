@@ -4,6 +4,7 @@ import pandas as pd
 
 def load_transactions(path: str | Path) -> pd.DataFrame:
     path = Path(path)
+
     print(f"[DATA] Loading transactions from {path}...")
 
     if not path.exists():
@@ -14,45 +15,69 @@ def load_transactions(path: str | Path) -> pd.DataFrame:
     df = pd.read_csv(path, low_memory=False)
 
     required = {
-        "InvoiceNo", "StockCode", "Description",
-        "Quantity", "InvoiceDate", "UnitPrice"
+        "Description",
+        "Quantity",
+        "InvoiceDate",
+        "UnitPrice",
     }
+
     missing = required - set(df.columns)
+
     if missing:
-        raise ValueError(f"Missing required columns: {sorted(missing)}")
+        raise ValueError(
+            f"Missing required columns: {sorted(missing)}"
+        )
 
     print(f"[DATA] Raw shape: {df.shape}")
+    print(f"[DATA] Available columns: {list(df.columns)}")
 
-    df["InvoiceDate"] = pd.to_datetime(df["InvoiceDate"], errors="coerce")
-    df["Quantity"] = pd.to_numeric(df["Quantity"], errors="coerce")
-    df["UnitPrice"] = pd.to_numeric(df["UnitPrice"], errors="coerce")
+    df["InvoiceDate"] = pd.to_datetime(
+        df["InvoiceDate"],
+        errors="coerce"
+    )
+
+    df["Quantity"] = pd.to_numeric(
+        df["Quantity"],
+        errors="coerce"
+    )
+
+    df["UnitPrice"] = pd.to_numeric(
+        df["UnitPrice"],
+        errors="coerce"
+    )
 
     before = len(df)
 
-    # Demand is defined here as fulfilled positive-quantity sales.
-    # Cancellation invoices and returns are excluded rather than treated as demand.
-    invoice_str = df["InvoiceNo"].astype(str)
+    # Keep only valid fulfilled sales.
     df = df[
         df["InvoiceDate"].notna()
-        & df["StockCode"].notna()
+        & df["Description"].notna()
         & df["Quantity"].notna()
         & df["UnitPrice"].notna()
         & (df["Quantity"] > 0)
         & (df["UnitPrice"] > 0)
-        & (~invoice_str.str.upper().str.startswith("C"))
     ].copy()
 
-    # Remove obvious non-product/service rows where the stock code is not useful
-    # for product-level demand forecasting.
-    df["StockCode"] = df["StockCode"].astype(str).str.strip()
-    df["Description"] = df["Description"].fillna("Unknown product").astype(str).str.strip()
+    df["Description"] = (
+        df["Description"]
+        .astype(str)
+        .str.strip()
+        .str.upper()
+    )
 
     after = len(df)
 
     print(f"[DATA] Valid demand rows: {after:,}")
     print(f"[DATA] Removed rows: {before - after:,}")
-    print(f"[DATA] Date range: {df['InvoiceDate'].min()} -> {df['InvoiceDate'].max()}")
-    print(f"[DATA] Unique products: {df['StockCode'].nunique():,}")
+    print(
+        f"[DATA] Date range: "
+        f"{df['InvoiceDate'].min()} -> {df['InvoiceDate'].max()}"
+    )
+
+    print(
+        f"[DATA] Unique products: "
+        f"{df['Description'].nunique():,}"
+    )
 
     return df
 
@@ -62,16 +87,26 @@ def choose_product(
     min_active_days: int = 90,
     min_total_units: int = 500,
 ) -> tuple[str, str]:
-    print("[DATA] Selecting a product with enough history for forecasting...")
+
+    print(
+        "[DATA] Selecting a product with enough "
+        "history for forecasting..."
+    )
 
     daily = (
-        df.assign(date=df["InvoiceDate"].dt.floor("D"))
-        .groupby(["StockCode", "Description", "date"], as_index=False)["Quantity"]
+        df.assign(
+            date=df["InvoiceDate"].dt.floor("D")
+        )
+        .groupby(
+            ["Description", "date"],
+            as_index=False
+        )["Quantity"]
         .sum()
     )
 
     stats = (
-        daily.groupby(["StockCode", "Description"])
+        daily
+        .groupby("Description")
         .agg(
             active_days=("date", "nunique"),
             total_units=("Quantity", "sum"),
@@ -87,51 +122,86 @@ def choose_product(
     if candidates.empty:
         raise RuntimeError(
             "No product satisfies the selection criteria. "
-            "Lower min_active_days/min_total_units."
+            "Lower min_active_days or min_total_units."
         )
 
+    # Prefer products with long histories and substantial demand.
     candidates = candidates.sort_values(
-        ["active_days", "total_units"], ascending=False
+        ["active_days", "total_units"],
+        ascending=False
     )
 
     row = candidates.iloc[0]
-    product_id = str(row["StockCode"])
+
     description = str(row["Description"])
 
-    print(f"[DATA] Selected product: {product_id}")
-    print(f"[DATA] Description: {description}")
-    print(f"[DATA] Active days: {int(row['active_days']):,}")
-    print(f"[DATA] Total units: {row['total_units']:,.0f}")
+    print(f"[DATA] Selected product: {description}")
+    print(
+        f"[DATA] Active days: "
+        f"{int(row['active_days']):,}"
+    )
+    print(
+        f"[DATA] Total units: "
+        f"{row['total_units']:,.0f}"
+    )
 
-    return product_id, description
+    # Since StockCode is unavailable in the downloaded table,
+    # use the product description as the product identifier.
+    return description, description
 
 
 def build_daily_series(
     df: pd.DataFrame,
     product_id: str,
 ) -> pd.DataFrame:
-    product = df[df["StockCode"].astype(str) == str(product_id)].copy()
+
+    product = df[
+        df["Description"].astype(str) == str(product_id)
+    ].copy()
 
     if product.empty:
-        raise ValueError(f"Product {product_id} not found.")
+        raise ValueError(
+            f"Product {product_id} not found."
+        )
 
     daily = (
-        product.assign(date=product["InvoiceDate"].dt.floor("D"))
-        .groupby("date", as_index=True)["Quantity"]
+        product.assign(
+            date=product["InvoiceDate"].dt.floor("D")
+        )
+        .groupby("date")["Quantity"]
         .sum()
         .sort_index()
         .rename("sales")
         .to_frame()
     )
 
-    # Fill dates with zero demand. This is important because a missing date in
-    # transaction data can mean "no sale", not "unknown".
-    full_index = pd.date_range(daily.index.min(), daily.index.max(), freq="D")
-    daily = daily.reindex(full_index, fill_value=0.0)
+    # Explicitly represent days with no sales as zero demand.
+    full_index = pd.date_range(
+        daily.index.min(),
+        daily.index.max(),
+        freq="D",
+    )
+
+    daily = daily.reindex(
+        full_index,
+        fill_value=0.0
+    )
+
     daily.index.name = "date"
 
-    print(f"[DATA] Product time series length: {len(daily):,} days")
-    print(f"[DATA] Zero-demand days: {(daily['sales'] == 0).sum():,}")
-    print(f"[DATA] Mean daily demand: {daily['sales'].mean():.2f}")
+    print(
+        f"[DATA] Product time series length: "
+        f"{len(daily):,} days"
+    )
+
+    print(
+        f"[DATA] Zero-demand days: "
+        f"{(daily['sales'] == 0).sum():,}"
+    )
+
+    print(
+        f"[DATA] Mean daily demand: "
+        f"{daily['sales'].mean():.2f}"
+    )
 
     return daily
