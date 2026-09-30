@@ -1,6 +1,6 @@
-**# E-commerce Product Demand Forecasting with Time-Series Models and a Local LLM**
+# E-commerce Product Demand Forecasting with Time-Series Models and a Local LLM
 
-**## The question**
+## The question
 
 An e-commerce system does not only need to know what sold yesterday.
 
@@ -18,9 +18,9 @@ The forecasting models produce numbers.
 
 The language model explains those numbers.
 
-\---
+---
 
-**## What the project is solving**
+## What the project is solving
 
 The input is transaction-level e-commerce data.
 
@@ -38,49 +38,49 @@ Each transaction contains information such as:
 
 The raw transactions are converted into a daily demand series for one product:
 
-\\[
+\[
 
 y_t = \sum\_{i \in t} q_i
 
-\\]
+\]
 
 where:
 
-\- \\(y_t\\) is the product demand on day \\(t\\)
+\- \(y_t\) is the product demand on day \(t\)
 
-\- \\(q_i\\) is the quantity associated with transaction \\(i\\)
+\- \(q_i\) is the quantity associated with transaction \(i\)
 
-\- \\(i \in t\\) means that the transaction occurred on day \\(t\\)
+\- \(i \in t\) means that the transaction occurred on day \(t\)
 
 The forecasting problem then becomes:
 
-\\[
+\[
 
-\hat{y}*\_{t+1}, \hat{y}\_*{t+2}, \ldots, \hat{y}\_{t+h}
+\hat{y}*\{t+1}, \hat{y}\{t+2}, \ldots, \hat{y}\{t+h}
 
 \=
 
 f(y_1, y_2, \ldots, y_t)
 
-\\]
+\]
 
-where \\(h\\) is the forecasting horizon.
+where \(h\) is the forecasting horizon.
 
 For this implementation, the default horizon is 30 days.
 
-\---
+---
 
-**## Dataset**
+## Dataset
 
-The project uses the **\*\*Online Retail\*\*** dataset from the UCI Machine Learning Repository.
+The project uses the \\Online Retail** dataset from the UCI Machine Learning Repository.
 
 The dataset contains transaction records from a UK-based online retailer between December 2010 and December 2011. It contains product codes, quantities, timestamps, prices, invoices, customers, and countries.
 
-The dataset is licensed under **\*\*CC BY 4.0\*\***.
+The dataset is licensed under \\*CC BY 4.0***.
 
 Source:
 
-Chen, D. (2015). *\*Online Retail\**. UCI Machine Learning Repository.
+Chen, D. (2015). \*Online Retail*. UCI Machine Learning Repository.
 
 DOI: \`10.24432/C5BW33\`
 
@@ -92,13 +92,13 @@ The raw dataset is deliberately not committed to this repository. The project do
 
 This avoids unnecessarily redistributing the source dataset while preserving the required attribution.
 
-\---
+---
 
-**## A small but important definition**
+## A small but important definition
 
 The dataset contains returns and cancelled invoices.
 
-For this project, "demand" means **\*\*positive fulfilled quantity\*\***.
+For this project, "demand" means \\*positive fulfilled quantity***.
 
 Therefore, the preprocessing removes:
 
@@ -116,39 +116,39 @@ This is a modeling assumption, not a universal definition of demand.
 
 If a business wanted to forecast net demand including returns, the preprocessing definition would need to change.
 
-\---
+---
 
-**# From transactions to a time series**
+# From transactions to a time series
 
 Suppose a product has these transactions:
 
-\| Date | Quantity |
+| Date | Quantity |
 
-\|---|---:|
+|---|---:|
 
-\| Monday | 4 |
+| Monday | 4 |
 
-\| Monday | 7 |
+| Monday | 7 |
 
-\| Tuesday | 3 |
+| Tuesday | 3 |
 
-\| Wednesday | 0 |
+| Wednesday | 0 |
 
 The forecasting series becomes:
 
-\\[
+\[
 
 [11,\ 3,\ 0,\ldots]
 
-\\]
+\]
 
 Dates without transactions are explicitly represented as zero demand.
 
 This matters because a missing transaction date can represent a day on which the product sold nothing. It should not automatically be interpreted as missing information.
 
-\---
+---
 
-**# Why time-based validation matters**
+# Why time-based validation matters
 
 Random train/test splitting is inappropriate for forecasting.
 
@@ -160,7 +160,7 @@ The project therefore uses chronological validation:
 
 Historical observations
 
-\|-----------------------------|---------|
+|-----------------------------|---------|
 
           Training              Validation
 
@@ -174,85 +174,85 @@ The models never receive those observations during training.
 
 This gives us a much more realistic estimate of how the forecasting pipeline behaves on future data.
 
-\---
+---
 
-**# The models**
+# The models
 
 Three progressively different approaches are evaluated.
 
-**## 1. Seasonal Naive baseline**
+## 1. Seasonal Naive baseline
 
 The first model is intentionally simple.
 
 For daily demand with weekly seasonality:
 
-\\[
+\[
 
-\hat{y}*\_t = y\_*{t-7}
+\hat{y}_*\t = y\{t-7}
 
-\\]
+\]
 
 In other words, Monday's forecast starts from the previous Monday, Tuesday from the previous Tuesday, and so on.
 
 This baseline is important because a more complicated model should justify its additional complexity by improving over a simple seasonal rule.
 
-\---
+---
 
-**## 2. SARIMA**
+## 2. SARIMA
 
 The second approach models the statistical structure of the time series.
 
 SARIMA can be represented as:
 
-\\[
+\[
 
 SARIMA(p,d,q)\times(P,D,Q)\_s
 
-\\]
+\]
 
 where:
 
-\- \\(p\\): autoregressive order
+\- \(p\): autoregressive order
 
-\- \\(d\\): non-seasonal differencing order
+\- \(d\): non-seasonal differencing order
 
-\- \\(q\\): moving-average order
+\- \(q\): moving-average order
 
-\- \\(P\\): seasonal autoregressive order
+\- \(P\): seasonal autoregressive order
 
-\- \\(D\\): seasonal differencing order
+\- \(D\): seasonal differencing order
 
-\- \\(Q\\): seasonal moving-average order
+\- \(Q\): seasonal moving-average order
 
-\- \\(s\\): seasonal period
+\- \(s\): seasonal period
 
 The implementation uses a weekly seasonal period:
 
-\\[
+\[
 
 s=7
 
-\\]
+\]
 
 The project uses:
 
-\\[
+\[
 
 SARIMA(1,1,1)\times(1,1,1)\_7
 
-\\]
+\]
 
 The implementation uses \`statsmodels\`' SARIMAX interface.
 
-\---
+---
 
-**## 3. Gradient boosting with lag features**
+## 3. Gradient boosting with lag features
 
 The third approach converts the time series into a supervised-learning problem.
 
 For each day, features include:
 
-\\[
+\[
 
 X_t =
 
@@ -278,31 +278,31 @@ y\_{t-28},
 
 ]
 
-\\]
+\]
 
 The target is:
 
-\\[
+\[
 
 y_t
 
-\\]
+\]
 
 The model used is scikit-learn's \`HistGradientBoostingRegressor\`.
 
 For future prediction, the model forecasts one day at a time and feeds its prediction back into the feature-generation process.
 
-This is called **\*\*recursive multi-step forecasting\*\***.
+This is called \\*recursive multi-step forecasting***.
 
-\---
+---
 
-**# Evaluation**
+# Evaluation
 
 The project reports several complementary metrics.
 
-**## Mean Absolute Error**
+## Mean Absolute Error
 
-\\[
+\[
 
 MAE =
 
@@ -312,17 +312,17 @@ MAE =
 
 |y_i-\hat{y}\_i|
 
-\\]
+\]
 
 MAE answers:
 
 \> On average, how many units was the forecast away from the actual demand?
 
-\---
+---
 
-**## Root Mean Squared Error**
+## Root Mean Squared Error
 
-\\[
+\[
 
 RMSE =
 
@@ -336,15 +336,15 @@ RMSE =
 
 }
 
-\\]
+\]
 
 RMSE penalizes large errors more strongly than MAE.
 
-\---
+---
 
-**## Symmetric Mean Absolute Percentage Error**
+## Symmetric Mean Absolute Percentage Error
 
-\\[
+\[
 
 SMAPE =
 
@@ -356,15 +356,15 @@ SMAPE =
 
 {|y_i|+|\hat{y}\_i|}
 
-\\]
+\]
 
 The implementation defines the contribution as zero when both actual and predicted demand are zero.
 
-\---
+---
 
-**## Weighted Absolute Percentage Error**
+## Weighted Absolute Percentage Error
 
-\\[
+\[
 
 WAPE =
 
@@ -380,17 +380,17 @@ WAPE =
 
 }
 
-\\]
+\]
 
 WAPE is useful for interpreting total forecast error relative to total observed demand.
 
 The pipeline uses validation WAPE to select the final forecasting approach.
 
-\---
+---
 
-**# Where the LLM fits**
+# Where the LLM fits
 
-The LLM is intentionally **\*\*not\*\*** the forecasting model.
+The LLM is intentionally \\not** the forecasting model.
 
 That distinction is important.
 
@@ -492,15 +492,15 @@ It then produces an analyst-style explanation.
 
 This architecture keeps numerical prediction deterministic and measurable while using the LLM for communication rather than pretending that free-form text generation is a substitute for forecasting evaluation.
 
-\---
+---
 
-**# Local LLM**
+# Local LLM
 
-The project uses **\*\*Qwen3-4B through Ollama\*\***.
+The project uses \\*Qwen3-4B through Ollama***.
 
 The model can run locally, so the project does not require a paid API key or a cloud LLM provider.
 
-Qwen3-4B is listed with an **\*\*Apache License 2.0\*\*** on its official model listing.
+Qwen3-4B is listed with an \\Apache License 2.0** on its official model listing.
 
 Ollama provides a local interface for running the model.
 
@@ -514,9 +514,9 @@ If Ollama is unavailable, the complete forecasting pipeline still runs and produ
 
 This is intentional: the core ML system should not fail just because the explanation layer is unavailable.
 
-\---
+---
 
-**# Reproducibility**
+# Reproducibility
 
 The project fixes the main machine-learning random seed:
 
@@ -560,9 +560,9 @@ outputs/
 
 The raw dataset and generated model artifacts are excluded from Git.
 
-\---
+---
 
-**# Project structure**
+# Project structure
 
 \`\`\`text
 
@@ -604,7 +604,7 @@ ecommerce-demand-forecasting/
 
 └── src/
 
-    ├── \_\_init\_\_.py
+    ├── \\init\\.py
 
     ├── data.py
 
@@ -622,31 +622,31 @@ ecommerce-demand-forecasting/
 
 Each component has one clear responsibility:
 
-\| Component | Responsibility |
+| Component | Responsibility |
 
-\|---|---|
+|---|---|
 
-\| \`download_data.py\` | Retrieve the UCI dataset |
+| \`download_data.py\` | Retrieve the UCI dataset |
 
-\| \`src/data.py\` | Cleaning and time-series construction |
+| \`src/data.py\` | Cleaning and time-series construction |
 
-\| \`src/features.py\` | Lag and rolling features |
+| \`src/features.py\` | Lag and rolling features |
 
-\| \`src/models.py\` | Forecasting models |
+| \`src/models.py\` | Forecasting models |
 
-\| \`src/evaluate.py\` | Evaluation metrics |
+| \`src/evaluate.py\` | Evaluation metrics |
 
-\| \`src/plots.py\` | Visual diagnostics |
+| \`src/plots.py\` | Visual diagnostics |
 
-\| \`src/llm.py\` | Local LLM explanation |
+| \`src/llm.py\` | Local LLM explanation |
 
-\| \`main.py\` | End-to-end pipeline |
+| \`main.py\` | End-to-end pipeline |
 
-\| \`app.py\` | Streamlit interface |
+| \`app.py\` | Streamlit interface |
 
-\---
+---
 
-**# Running the project**
+# Running the project
 
 Create an environment:
 
@@ -712,51 +712,57 @@ streamlit run app.py
 
 \`\`\`
 
-\---
+---
 
 **# Results
 
 The first end-to-end experiment was completed successfully using the selected product:
 
-**WHITE HANGING HEART T-LIGHT HOLDER**
+WHITE HANGING HEART T-LIGHT HOLDER
 
-The product contained **373 days** of daily demand history, including **304 active sales days** and **69 zero-demand days**. The mean daily demand was **101.58 units**.
+The product contained 373 days of daily demand history, including 304 active sales days and 69 zero-demand days. The mean daily demand was 101.58 units.
 
 The experiment used a chronological split:
 
-- Training period: **2010-12-01 to 2011-11-08**
-- Validation period: **2011-11-09 to 2011-12-08**
-- Validation horizon: **30 days**
+- Training period: 2010-12-01 to 2011-11-08
 
-## Model comparison
+- Validation period: 2011-11-09 to 2011-12-08
+
+- Validation horizon: 30 days
+
+# Model comparison
 
 | Model | MAE | RMSE | SMAPE | WAPE |
+
 |---|---:|---:|---:|---:|
+
 | Seasonal Naive | 272.5000 | 497.9743 | 83.87% | 206.54% |
-| SARIMA | **90.9501** | 125.1483 | **75.94%** | **68.94%** |
-| Gradient Boosting | 102.0394 | **121.6686** | 100.20% | 77.34% |
 
-The Seasonal Naive model provides a useful baseline, while both SARIMA and Gradient Boosting substantially improve upon it. Based on the validation WAPE used by the pipeline for model selection, **SARIMA was selected as the final forecasting model**.
+| SARIMA | 90.9501 | 125.1483 | 75.94% | 68.94% |
 
-## Final forecast
+| Gradient Boosting | 102.0394 | 121.6686 | 100.20% | 77.34% |
 
-The selected SARIMA model was refitted using the complete available history and used to generate a **30-day future demand forecast**.
+The Seasonal Naive model provides a useful baseline, while both SARIMA and Gradient Boosting substantially improve upon it. Based on the validation WAPE used by the pipeline for model selection, SARIMA was selected as the final forecasting model.
 
-- Forecast horizon: **30 days**
-- Forecasted total demand: **2,747.09 units**
-- Forecasted average daily demand: **91.57 units/day**
+# Final forecast
+
+The selected SARIMA model was refitted using the complete available history and used to generate a 30-day future demand forecast.
+
+- Forecast horizon: 30 days
+
+- Forecasted total demand: 2,747.09 units
+
+- Forecasted average daily demand: 91.57 units/day
 
 The pipeline also generated historical-demand, weekly-pattern, validation-forecast, future-forecast, and residual plots for visual analysis.
 
-## LLM explanation
+# LLM explanation
 
 The numerical forecasting pipeline completed successfully without requiring an external API.
 
 The optional local Qwen3-4B explanation layer was not enabled during this run because Ollama was not running. The forecasting results therefore remain independent of the LLM layer, while the generated analyst explanation can be added by running the local model separately.
 
----
-
-**# Responsible interpretation**
+# Responsible interpretation
 
 This is a portfolio forecasting system, not a production inventory-management system.
 
@@ -770,23 +776,23 @@ The LLM explanation is also not an independent source of truth. It summarizes th
 
 For operational deployment, forecasts should be validated against a business-specific dataset and monitored over time.
 
-\---
+---
 
-**# Dataset attribution**
+# Dataset attribution
 
 Chen, D. (2015). Online Retail. UCI Machine Learning Repository.
 
 DOI: \`10.24432/C5BW33\`
 
-License: **\*\*CC BY 4.0\*\***
+License: \\CC BY 4.0**
 
 https\://archive.ics.uci.edu/dataset/352/online-retail
 
 The raw dataset is not included in this repository.
 
-\---
+---
 
-**# Model attribution**
+# Model attribution
 
 This project uses Qwen3-4B through Ollama.
 
@@ -794,16 +800,6 @@ Model:
 
 \`Qwen3-4B\`
 
-License shown on the official model listing: **\*\*Apache License 2.0\*\***
+License shown on the official model listing: \\Apache License 2.0**
 
 The model is downloaded separately by the user and is not bundled with this repository.
-
-\---
-
-**# Code license**
-
-The project code in this repository may be released under the MIT License.
-
-The code license does not change the license terms of the external dataset or third-party model.
-
-Always retain the external attribution and comply with the applicable third-party licenses when using or redistributing those resources.
