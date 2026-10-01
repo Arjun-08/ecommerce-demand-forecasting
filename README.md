@@ -532,5 +532,9 @@ License shown on the official model listing: **Apache License 2.0**
 
 The model is downloaded separately by the user and is not bundled with this repository.
 
-\---
 
+> **Note:** Run the Streamlit UI using the following command:
+>
+> ```bash
+> streamlit run app.py
+> ```
