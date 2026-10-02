@@ -486,23 +486,7 @@ The pipeline also generated historical-demand, weekly-pattern, validation-foreca
 
 The numerical forecasting pipeline completed successfully without requiring an external API.
 
-The optional local Qwen3-4B explanation layer was not enabled during this run because Ollama was not running. The forecasting results therefore remain independent of the LLM layer, while the generated analyst explanation can be added by running the local model separately.
-
----
-
-# Responsible interpretation
-
-This is a portfolio forecasting system, not a production inventory-management system.
-
-The dataset represents historical transactions from a particular retailer and period. It does not represent every e-commerce business.
-
-The forecast should therefore be interpreted as a model estimate conditioned on the available historical data.
-
-The system does not automatically account for future promotions, stockouts, supplier constraints, holidays outside the observed history, marketing campaigns, competitor behavior, price changes, or other external drivers.
-
-The LLM explanation is also not an independent source of truth. It summarizes the numerical information supplied to it and can make language-generation errors.
-
-For operational deployment, forecasts should be validated against a business-specific dataset and monitored over time.
+The optional local Qwen3-4B explanation layer was not enabled during this run because Ollama was not running. The forecasting results therefore remain independent of the LLM layer, while the generated analyst explanation can be added by running the local model separately. (will update it after few fixes)
 
 ---
 
