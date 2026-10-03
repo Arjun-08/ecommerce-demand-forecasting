@@ -488,6 +488,25 @@ The numerical forecasting pipeline completed successfully without requiring an e
 
 The optional local Qwen3-4B explanation layer was not enabled during this run because Ollama was not running. The forecasting results therefore remain independent of the LLM layer, while the generated analyst explanation can be added by running the local model separately. (will update it after few fixes)
 
+## Visual Analysis
+
+### Historical Demand
+
+Daily product demand exhibits substantial variability, intermittent zero-demand days, and occasional sales spikes, making accurate forecasting challenging.
+<img width="1901" height="784" alt="image" src="https://github.com/user-attachments/assets/0d6262ff-6ca2-4dda-b16b-854b7c28c8c2" />
+
+### Model Validation
+
+Models are evaluated on a chronological 30-day validation period. SARIMA achieves the lowest MAE (90.95) and WAPE (68.94%), while Gradient Boosting achieves the lowest RMSE (121.67).
+<img width="1896" height="784" alt="image" src="https://github.com/user-attachments/assets/3eabfb40-c154-4a2a-b188-29968f5f633b" />
+
+
+### Future Forecast
+
+The selected SARIMA model is refitted on the available historical data to generate a 30-day forecast, with a predicted total of approximately 2,747 units.
+
+<img width="1901" height="784" alt="image" src="https://github.com/user-attachments/assets/af2058a1-a2da-4940-a5fd-cec731784f1d" />
+
 ---
 
 # Dataset attribution
